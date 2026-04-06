@@ -8,6 +8,7 @@ on:
       - '**.md'
       - '.github/**'
       - '!.github/workflows/debug.yml'
+  workflow_dispatch: # Позволяет запускать сборку кнопкой вручную
 
 jobs:
   ffmpeg:
@@ -55,6 +56,7 @@ jobs:
           ./run init action ffmpeg
           ./run init libs libvpx
           ./run init libs ffmpeg
+
   boringssl:
     name: Native Build (BoringSSL)
     runs-on: ubuntu-latest
@@ -92,6 +94,7 @@ jobs:
         run: |
           ./run init action boringssl
           ./run init libs boringssl
+
   native:
     name: Native Build (Telegram)
     runs-on: ubuntu-latest
@@ -163,6 +166,7 @@ jobs:
         run: |
           export NATIVE_TARGET="${{ matrix.flavor }}"
           ./run libs native
+
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
@@ -211,12 +215,13 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Debug Build
         run: |
-          export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
-          ./gradlew TMessagesProj:assembleRelease
+          # Запускаем именно assembleDebug, чтобы не требовались подписи
+          ./gradlew TMessagesProj:assembleDebug
 
-          APK=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')
-          APK=$(dirname $APK)
-          echo "APK=$APK" >> $GITHUB_ENV
+          # Находим путь к сгенерированным APK в папке debug
+          APK_PATH=$(find TMessagesProj/build/outputs/apk -name "*debug*arm64-v8a*.apk" | head -n 1)
+          APK_DIR=$(dirname "$APK_PATH")
+          echo "APK=$APK_DIR" >> $GITHUB_ENV
       - name: Upload gradle.properties
         uses: actions/upload-artifact@v4
         with:
@@ -224,26 +229,23 @@ jobs:
           path: gradle.properties
       - uses: actions/upload-artifact@v4
         with:
-          name: Release
+          name: Debug-APKs
           path: ${{ env.APK }}
+
   upload:
-    name: Upload debug
-    if: github.event.inputs.upload != 'y'
+    name: Upload to Telegram
     runs-on: ubuntu-latest
     needs:
       - build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Remove gradle.properties
-        run: |
-          rm -f gradle.properties
       - name: Download gradle.properties
         uses: actions/download-artifact@v4
         with:
           name: gradle-properties
           path: .
-      - name: Donwload Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -251,14 +253,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
-      - name: Send to Tgramm
+      - name: Send to Telegram
         run: |
-          # send release via telegram bot api
-          export mini64=$(find artifacts -name "*arm64-v8a.apk")
-          export mini32=$(find artifacts -name "*armeabi-v7a.apk")
+          # Ищем дебаг-файлы для отправки ботом
+          export mini64=$(find artifacts -name "*debug*arm64-v8a*.apk" | head -n 1)
+          export mini32=$(find artifacts -name "*debug*armeabi-v7a*.apk" | head -n 1)
 
-          echo $mini64
-          echo $mini32
+          echo "Found 64bit: $mini64"
+          echo "Found 32bit: $mini32"
 
           python -m pip install -r bin/scripts/requirements.txt
           git log -1 --pretty=format:"%s%n%n%b" > artifacts/caption.txt
