@@ -1,17 +1,14 @@
-name: Release Build
+name: Debug build
+
 on:
   push:
     branches:
-      - main
+      - dev
     paths-ignore:
       - '**.md'
       - '.github/**'
-      - '!.github/workflows/release.yml'
-  workflow_dispatch:
-    inputs:
-      upload:
-        description: 'Upload: If want ignore'
-        required: false
+      - '!.github/workflows/debug.yml'
+
 jobs:
   ffmpeg:
     name: Native Build (FFmpeg)
@@ -212,7 +209,7 @@ jobs:
         with:
           path: ~/.gradle
           key: gradle-${{ hashFiles('**/*.gradle') }}
-      - name: Release Build
+      - name: Debug Build
         run: |
           export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
           ./gradlew TMessagesProj:assembleRelease
@@ -230,7 +227,7 @@ jobs:
           name: Release
           path: ${{ env.APK }}
   upload:
-    name: Upload release
+    name: Upload debug
     if: github.event.inputs.upload != 'y'
     runs-on: ubuntu-latest
     needs:
@@ -265,4 +262,4 @@ jobs:
 
           python -m pip install -r bin/scripts/requirements.txt
           git log -1 --pretty=format:"%s%n%n%b" > artifacts/caption.txt
-          python bin/scripts/upload.py ${{ secrets.HELPER_BOT_TOKEN }} ${{ secrets.HELPER_BOT_TARGET }} release
+          python bin/scripts/upload.py ${{ secrets.HELPER_BOT_TOKEN }} ${{ secrets.HELPER_BOT_TARGET }} test
