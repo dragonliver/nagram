@@ -33,8 +33,8 @@ public class BuildVars {
     public static int BUILD_VERSION; // generated
     public static String GITHUB_RELEASE_URL = "https://github.com/NextAlone/Nagram/releases";
 
-    public static int OFFICAL_APP_ID = 4;
-    public static String OFFICAL_APP_HASH = "014b35b6184100b085b0d0572f9b5103";
+    public static int OFFICAL_APP_ID = 31671752;
+    public static String OFFICAL_APP_HASH = "e9a734e94a8126c71b4a27b4b693a56a";
 
     public static int TGX_APP_ID = 21724;
     public static String TGX_APP_HASH = "3e0cb5efcd52300aec5994fdfc5bdc16";
